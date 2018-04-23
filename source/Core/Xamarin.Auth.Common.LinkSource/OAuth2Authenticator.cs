@@ -77,6 +77,31 @@ namespace Xamarin.Auth._MobileServices
         //---------------------------------------------------------------------------------------
         #endregion  State
 
+        //Josh Added 3/20/2018 ------------------------------------------------------------------
+        private string requestNonce;
+        private bool isNonceNeeded;
+        public bool IsNonceNeeded
+        {
+            get { return isNonceNeeded; }
+            set
+            {
+                if (this.IsNonceNeeded != value)
+                    this.isNonceNeeded = value;
+            }
+        }
+
+        private string responseType;
+        public string ResponseType
+        {
+            get { return responseType; }
+            set
+            {
+                if (this.responseType != value)
+                    this.responseType = value;
+            }
+        }
+        //---------------------------------------------------------------------------------------
+
         bool reportedForgery = false;
 
         #region
@@ -282,7 +307,19 @@ namespace Xamarin.Auth._MobileServices
             sb.AppendLine($"        IsUsingNativeUI = {IsUsingNativeUI}");
             sb.AppendLine($"        redirectUrl = {redirectUrl}");
             System.Diagnostics.Debug.WriteLine(sb.ToString());
-            #endif
+#endif
+
+            // Josh added 3/20/2018
+
+            var rand = new Random();
+            var chars_ = new char[16];
+            for (var i = 0; i < chars_.Length; i++)
+            {
+                chars_[i] = (char)rand.Next((int)'a', (int)'z' + 1);
+            }
+            this.requestNonce = new string(chars_);
+            this.isNonceNeeded = false;
+            // ^ Josh added
 
             return;
         }
@@ -584,7 +621,15 @@ namespace Xamarin.Auth._MobileServices
             oauth_request_query_parameters.Add("state", state);
             //---------------------------------------------------------------------------------------
 
-            #if DEBUG
+            // Josh added 3/20/18-------------------------------------------------------------------
+            if (isNonceNeeded)
+            {
+                oauth_request_query_parameters.Add("nonce", Uri.EscapeDataString(this.requestNonce));
+            }
+            //--------------------------------------------------------------------------------------
+
+
+#if DEBUG
             System.Diagnostics.Debug.WriteLine("OAuth Query Parameters DEFAULT:");
             foreach (KeyValuePair<string, string> kvp in oauth_request_query_parameters)
             {
@@ -643,8 +688,18 @@ namespace Xamarin.Auth._MobileServices
 
             if (this.IsImplicitFlow)
             {
-                response_types = new List<string>() { };
-                response_types.Add(Uri.EscapeDataString("token"));
+                // Josh updated 3/20/2018 --------------------------------------------
+                if (String.IsNullOrEmpty(ResponseType))
+                {
+                    response_types = new List<string>() { };
+                    response_types.Add(Uri.EscapeDataString("token"));
+                }
+                else
+                {
+                    response_types = new List<string>() { };
+                    response_types.Add(Uri.EscapeDataString(ResponseType));
+                }
+                // --------------------------------------------------------------------
             }
             else if (this.IsAuthorizationCodeFlow)
             {
